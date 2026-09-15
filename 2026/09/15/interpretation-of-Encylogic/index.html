@@ -1,0 +1,1262 @@
+
+
+<!DOCTYPE html>
+<html lang="en" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2c3a52">
+  <meta name="author" content="John Doe">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="EncyLogic 发现逻辑综合中大量存在&quot;中间变坏、终值反超&quot;的**天使序列（angel sequence）**，据此把综合问题从&quot;逐步动作选择&quot;重构为&quot;序列分布学习&quot;——先用物理验证过的天使序列预训练一个 Transformer（SeqFormer），再用布线后真实时延作奖励的 GRPO 式强化微调对齐物理实现，最后用带物理先验的领域定制 MCTS（SeqTree）在线适配每个新设计。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="interpretation of Encylogic">
+<meta property="og:url" content="https://chenyu-li-l.github.io/2026/09/15/interpretation-of-Encylogic/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="EncyLogic 发现逻辑综合中大量存在&quot;中间变坏、终值反超&quot;的**天使序列（angel sequence）**，据此把综合问题从&quot;逐步动作选择&quot;重构为&quot;序列分布学习&quot;——先用物理验证过的天使序列预训练一个 Transformer（SeqFormer），再用布线后真实时延作奖励的 GRPO 式强化微调对齐物理实现，最后用带物理先验的领域定制 MCTS（SeqTree）在线适配每个新设计。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2026-09-15T09:17:29.000Z">
+<meta property="article:modified_time" content="2026-09-15T09:20:25.551Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="EDA">
+<meta property="article:tag" content="机器学习">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+  
+  <title>interpretation of Encylogic - Hexo</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/KaTeX/0.16.2/katex.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1736178_k526ubmyhba.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"chenyu-li-l.github.io","root":"/","version":"1.9.9","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#e8a54b","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"expand_all":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"openkounter":{"server_url":"https://open-kounter.mintimate.cn","path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Chenyu Li</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content (desktop) -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>Home</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>Archives</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>Categories</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>Tags</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>About</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile grid menu overlay -->
+<div id="mobile-grid-menu" class="d-lg-none">
+  <div class="mobile-grid-menu-inner">
+    <div class="container">
+      <div class="row">
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-home-fill"></i>
+                  <span>Home</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/archives/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-archive-fill"></i>
+                  <span>Archives</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/categories/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-category-fill"></i>
+                  <span>Categories</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/tags/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-tags-fill"></i>
+                  <span>Tags</span>
+                </div>
+              </a>
+            </div>
+          
+        
+          
+          
+          
+          
+            <div class="col-4 mobile-grid-cell">
+              <a href="/about/" target="_self">
+                <div class="mobile-grid-item">
+                  <i class="iconfont icon-user-fill"></i>
+                  <span>About</span>
+                </div>
+              </a>
+            </div>
+          
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-search-btn">
+            <a href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-search"></i>
+                <span>Search</span>
+              </div>
+            </a>
+          </div>
+        
+        
+          <div class="col-4 mobile-grid-cell" id="mobile-color-toggle-btn"
+               data-label-light="Light"
+               data-label-dark="Dark">
+            <a href="javascript:;" aria-label="Color Toggle">
+              <div class="mobile-grid-item">
+                <i class="iconfont icon-dark" id="mobile-color-toggle-icon"></i>
+                <span id="mobile-color-toggle-label">Dark</span>
+              </div>
+            </a>
+          </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.jpg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="interpretation of Encylogic"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2026-09-15 17:17" pubdate>
+          September 15, 2026 pm
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          12k words
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          104 mins
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">interpretation of Encylogic</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="ICCAD’26-论文-EncyLogic：把逻辑综合变成”序列生成”"><a href="#ICCAD’26-论文-EncyLogic：把逻辑综合变成”序列生成”" class="headerlink" title="ICCAD’26 论文 | EncyLogic：把逻辑综合变成”序列生成”"></a>ICCAD’26 论文 | EncyLogic：把逻辑综合变成”序列生成”</h1><blockquote>
+<p><strong>SUMMARIZE</strong>：EncyLogic 发现逻辑综合中大量存在”中间变坏、终值反超”的<strong>天使序列（angel sequence）</strong>，据此把综合问题从”逐步动作选择”重构为”序列分布学习”——先用物理验证过的天使序列预训练一个 Transformer（SeqFormer），再用布线后真实时延作奖励的 GRPO 式强化微调对齐物理实现，最后用带物理先验的领域定制 MCTS（SeqTree）在线适配每个新设计。在完全未见过的设计上：布线后面积-时延积（ADP）比 BOiLS 低 **17.6%**，工艺映射时延比 <code>&amp;deepsyn</code> 低 **24%**，FPGA LUT 数低 **21%**。</p>
+</blockquote>
+<p><em>论文：EncyLogic: Logic Synthesis as Sequence Generation with Learned Priors and Physical Alignment（ICCAD’26，2026 年 11 月 8–12 日，San Jose）。本文所有数字均出自论文正文、Table 1–3 与 Fig. 1–6；标注”个人解读”的部分是博主观点。</em></p>
+<hr>
+<h2 id="0-TIPS"><a href="#0-TIPS" class="headerlink" title="0. TIPS:"></a>0. TIPS:</h2><ul>
+<li><strong>逻辑综合（logic synthesis）</strong>：把 RTL&#x2F;布尔逻辑变成工艺库门电路的编译过程。业界常用 <strong>AIG（And-Inverter Graph）</strong> 做中间表示——每个节点是一个 2 输入 AND 门，边上可以带反相。开源工具 <strong>ABC</strong> 提供了一整套优化原语：<code>balance</code>（压深度）、<code>rewrite</code> &#x2F; <code>refactor</code>（局部重写减少节点）、<code>resub</code>（重结构化）等。</li>
+<li><strong>优化序列</strong>：一串操作组成的”菜谱”，例如 <code>b → rw → rf → rs</code>。操作数为 k、长度为 L 的序列空间是 k^L，指数爆炸，穷举不可行。</li>
+<li><strong>前端 vs 后端</strong>：综合阶段（前端）看的是 AIG 节点数、逻辑级数这类<strong>结构性代理指标（proxy）</strong>；布局布线（后端）之后才见真章——时延、面积、拥塞。<strong>代理指标好 ≠ 物理指标好</strong>，这就是著名的”前后端鸿沟”。</li>
+<li><strong>时代背景</strong>：先进工艺节点 + 迭代式再综合（iterative re-synthesis）流程，使优化目标从可解释的 PPA（Power&#x2F;Performance&#x2F;Area）指标滑向<strong>黑盒代价函数</strong>——2024 年 ICCAD CAD Contest Problem A 正式化了这一工业趋势。指数空间 × 不可微、不可解释的目标，让一切依赖代理信号做剪枝的传统方法失去指南针。</li>
+</ul>
+<p>带着这四个概念，我们开始提问。</p>
+<hr>
+<h2 id="Part-1-·-问题定位：这篇论文到底在攻什么？"><a href="#Part-1-·-问题定位：这篇论文到底在攻什么？" class="headerlink" title="Part 1 · 问题定位：这篇论文到底在攻什么？"></a>Part 1 · 问题定位：这篇论文到底在攻什么？</h2><h3 id="Q1：这篇论文要解决的核心问题是什么？"><a href="#Q1：这篇论文要解决的核心问题是什么？" class="headerlink" title="Q1：这篇论文要解决的核心问题是什么？"></a>Q1：这篇论文要解决的核心问题是什么？</h3><p>三层递进：</p>
+<ol>
+<li><strong>空间指数大</strong>：候选优化序列的数量随长度指数增长，穷举不可行；</li>
+<li><strong>目标不透明</strong>：优化目标从可解释的结构指标演变为一般的、往往是黑盒的代价函数——没有梯度、没有可解释信号；</li>
+<li><strong>现有方法集体依赖前端代理做逐步引导</strong>：代理一失效就”失明”，而且贪心策略会拒绝任何让代理指标暂时恶化的步骤，从而锁死在局部最优。</li>
+</ol>
+<p>论文的核心论断是：这不是”更聪明的逐步动作选择”能解决的问题。**问题的正确抽象是”学习好序列的分布”**——即把逻辑综合从 RL 式的 MDP 决策，重新表述为生成模型式的分布学习。</p>
+<h3 id="Q2：什么是-angel-sequence（天使序列）？名字从哪来？"><a href="#Q2：什么是-angel-sequence（天使序列）？名字从哪来？" class="headerlink" title="Q2：什么是 angel sequence（天使序列）？名字从哪来？"></a>Q2：什么是 angel sequence（天使序列）？名字从哪来？</h3><p><strong>定义</strong>：在完整执行一段优化序列的过程中，前端结构性指标（如 AIG 节点数）<strong>先暂时恶化、最终却落到比贪心搜索更优的代价</strong>的非单调轨迹。</p>
+<p>论文的动机实验（Fig. 1）很有说服力：在 10,000 条 500 步的随机序列中，<strong>始终存在一小撮</strong>这样的非单调轨迹；其中最好的天使序列在 AND 节点缩减上比在线搜索基线 AlphaSyn（ICCAD’23）**好约 10%**，而且到 500 步仍未收敛、还在持续改进。这说明长 horizon 的优化油水很足，只是没人捞得到。</p>
+<p>名字借自 Yu 等人（ICCAD’18）提出的 angel&#x2F;devil flow 区分：带来好 QoR 的综合流程是”天使”，坏的是”魔鬼”。</p>
+<p>一个直观类比：登山时想上更高的峰，往往必须先下到谷底再从另一侧爬——<strong>贪心算法永远不肯下山</strong>，所以永远看不见谷对岸更高的山。天使序列就是”肯下山”的路线。</p>
+<h3 id="Q3：既然随机采样都能撞见天使序列，为什么现有方法抓不住？"><a href="#Q3：既然随机采样都能撞见天使序列，为什么现有方法抓不住？" class="headerlink" title="Q3：既然随机采样都能撞见天使序列，为什么现有方法抓不住？"></a>Q3：既然随机采样都能撞见天使序列，为什么现有方法抓不住？</h3><p>论文把现有方法分成四类，逐一”验伤”：</p>
+<table>
+<thead>
+<tr>
+<th>方法流派</th>
+<th>代表工作</th>
+<th>失效方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>在线强化学习</td>
+<td>DRiLLS、FlowTune、AlphaSyn、RL-guided 探索等</td>
+<td>用<strong>即时代理改进</strong>当 reward，逐步贪心，任何”暂时变差”的动作都会被拒绝</td>
+</tr>
+<tr>
+<td>离线检索</td>
+<td>ReLS、PIRLLS、Retrieval-guided RL</td>
+<td>从静态数据集取序列，<strong>无在线适配</strong>，换设计就失灵</td>
+</tr>
+<tr>
+<td>贝叶斯优化</td>
+<td>BOiLS</td>
+<td>长 horizon 下高斯代理 scaling 差，代价函数黑盒化后更是不可用</td>
+</tr>
+<tr>
+<td>学习式代理&#x2F;连续建模</td>
+<td>DAC’25 扩散模型</td>
+<td>仍以<strong>可解释的前端代理</strong>为中介，黑盒目标下引导信号消失</td>
+</tr>
+</tbody></table>
+<p>四类的共性：<strong>step-level 的代理引导</strong>。天使序列恰恰以”步级指标恶化”为特征，等于被所有代理引导方法结构性排除。当目标函数本身黑盒化，这最后一层引导信号也消失了。</p>
+<h3 id="Q4：”分布学习”和”动作选择”的区别是本质的吗？NLP-AlphaGo-类比贴不贴？"><a href="#Q4：”分布学习”和”动作选择”的区别是本质的吗？NLP-AlphaGo-类比贴不贴？" class="headerlink" title="Q4：”分布学习”和”动作选择”的区别是本质的吗？NLP&#x2F;AlphaGo 类比贴不贴？"></a>Q4：”分布学习”和”动作选择”的区别是本质的吗？NLP&#x2F;AlphaGo 类比贴不贴？</h3><p>论文给出的类比有两层，都值得推敲：</p>
+<p><strong>GPT 类比</strong>：天使序列在组合空间中稀少、但结构连贯——恰似天文数字的 token 空间中”流利的句子”。学分布，就是学”哪些操作组合模式在物理上是有效的”，然后高效采样自高概率区域、剪掉其余。类比大体成立，但有一个不同：自然语言的”好”没有客观裁判，而逻辑序列的”好”最终可以由布线工具判死活。</p>
+<p><strong>AlphaGo&#x2F;AlphaZero 类比</strong>：AlphaSyn 像 AlphaZero——纯自博弈，每个新设计都要重训策略网络，运行时开销巨大；EncyLogic 像 AlphaGo——先在”专家棋谱”（&#x3D; 物理验证过的天使序列）上预训练策略，再在线搜索。这个类比非常贴切，但要注意：围棋有廉价且完美的终局胜负判定，而逻辑综合的”终局奖励”要跑完整布局布线才能拿到——<strong>贵得多</strong>。这一差异正是论文必须对 MCTS 动大手术（SeqTree）的根本原因，见 Q9。</p>
+<hr>
+<h2 id="Part-2-·-方法深挖：三个组件各干了什么？"><a href="#Part-2-·-方法深挖：三个组件各干了什么？" class="headerlink" title="Part 2 · 方法深挖：三个组件各干了什么？"></a>Part 2 · 方法深挖：三个组件各干了什么？</h2><h3 id="Q5：EncyLogic-的整体架构是什么？"><a href="#Q5：EncyLogic-的整体架构是什么？" class="headerlink" title="Q5：EncyLogic 的整体架构是什么？"></a>Q5：EncyLogic 的整体架构是什么？</h3><p>名字来自 <strong>Ency</strong>clopedia（序列百科全书）+ <strong>Logic</strong>。框架 &#x3D; 一次离线训练 + 每设计在线搜索，共三大件：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><code class="hljs text">[离线 · 一次性]<br>  OpenABC-D / ISCAS-85 的 33 个 AIG × 8 个结构变体 = 264 个起始 AIG<br>        │   每个变体均匀随机采样 15,000 条 25 步序列（约 396 万条）<br>        ▼<br>  Stage 1 前端预筛：按前端 QoR 取每变体 top-100 → 23,500 条候选<br>        │   （理论 26,400 条，受算力截断）<br>        │   只对这 2.35 万条跑 OpenROAD 布线<br>        ▼<br>  Stage 2 后端物理验证：按布线后时延取每 AIG top-50 → 11,750 条&quot;天使序列&quot;<br>        │<br>        ▼<br>  SeqFormer 监督预训练：交叉熵拟合；输入 = 操作序列 + 时延/WNS 物理指标历史<br>        │<br>        ▼<br>  SeqFormer 强化微调（GRPO 式，reward = −布线后时延，KL 约束，无 value 网络）<br><br>[在线 · 每个新设计]<br>  SeqTree MCTS：PUCT 的先验 P(s,a) 来自微调后的 SeqFormer<br>        │   b 条并行搜索 × 深度 d，M 轮内层循环<br>        │   候选批量异步送 OpenROAD 布线评估（节点级不跑布线）<br>        ▼<br>  单调接受：只有真实布线时延严格更优才推进基序列 s_j → s_j+1<br>        ▼<br>  输出最终优化序列<br></code></pre></td></tr></table></figure>
+
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>角色</th>
+<th>对应的经典类比</th>
+<th>关键机制</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Sequence Encyclopedia</td>
+<td>训练语料</td>
+<td>语料库 &#x2F; “专家棋谱”</td>
+<td>两阶段蒸馏</td>
+</tr>
+<tr>
+<td>SeqFormer（监督）</td>
+<td>生成先验</td>
+<td>GPT 预训练</td>
+<td>操作序列与物理指标交错输入</td>
+</tr>
+<tr>
+<td>GRPO 式 RL 微调（论文在消融中称 RLVR）</td>
+<td>与真实代价对齐</td>
+<td>RLHF &#x2F; RL with Verifiable Rewards</td>
+<td>组相对优势 + KL 罚</td>
+</tr>
+<tr>
+<td>SeqTree</td>
+<td>设计级在线适配</td>
+<td>AlphaGo 的 MCTS</td>
+<td>PUCT 先验 &#x2F; 虚拟损失 &#x2F; 单调接受</td>
+</tr>
+</tbody></table>
+<h3 id="Q6：训练用的”序列百科全书”是怎么蒸馏出来的？为什么要两阶段？"><a href="#Q6：训练用的”序列百科全书”是怎么蒸馏出来的？为什么要两阶段？" class="headerlink" title="Q6：训练用的”序列百科全书”是怎么蒸馏出来的？为什么要两阶段？"></a>Q6：训练用的”序列百科全书”是怎么蒸馏出来的？为什么要两阶段？</h3><p>两阶段的动机是<strong>成本控制</strong>：布线评估很贵，不能对 396 万条随机序列全跑。</p>
+<ul>
+<li><strong>Stage 1（前端预筛）</strong>：33 个 AIG × 8 变体 &#x3D; 264 个起点；每个起点均匀采样 15,000 条 25 步随机序列，按<strong>前端 QoR</strong> 取每变体 top-100，得到 23,500 条候选（理论 26,400，因算力截断）。此阶段只跑便宜的前端综合。</li>
+<li><strong>Stage 2（后端物理验证）</strong>：只对这 2.35 万条跑 OpenROAD 布线，按<strong>可验证的物理 reward（布线后数据到达时间）</strong> 取每 AIG top-50，最终得到 <strong>11,750 条物理验证过的天使序列</strong>。</li>
+</ul>
+<p>这里有一个容易混淆的点值得澄清：天使序列的”恶化”是<strong>路径中段</strong>的属性，其<strong>最终前端指标依然是好的</strong>——所以 Stage 1 按”最终前端 QoR”筛选并不会天然把天使序列筛掉。Stage 2 的作用是再按物理真值重排，把”前端好看但布线难看”的假阳性挤出去。这正是对”前后端鸿沟”的正面回应。</p>
+<h3 id="Q7：SeqFormer-是什么？为什么要给模型喂时延-WNS-历史？"><a href="#Q7：SeqFormer-是什么？为什么要给模型喂时延-WNS-历史？" class="headerlink" title="Q7：SeqFormer 是什么？为什么要给模型喂时延&#x2F;WNS 历史？"></a>Q7：SeqFormer 是什么？为什么要给模型喂时延&#x2F;WNS 历史？</h3><p><strong>架构</strong>：decoder-only Transformer，6 层、8 个注意力头、隐藏维 512——一个”玩具尺寸”的语言模型。词表是 32 个组合式优化操作（由 <code>dch</code>&#x2F;<code>dch -f</code>（2）× <code>if -a -K n, n∈&#123;3..6&#125;</code>（4）× <code>mfs -e -W 20 -L 20</code> 及 ±<code>fx</code>&#x2F;<code>st</code>（2）× <code>dc2</code>&#x2F;<code>compress2rs</code>（2）组合而成，2×4×2×2&#x3D;32），外加 <code>&lt;bos&gt;</code> 等特殊符。图中示意用的 <code>b / rw / rf / rs</code> 是经典 ABC 操作的缩写，属示意记号。</p>
+<p><strong>最关键的设计</strong>：输入不只是操作序列，还<strong>逐前缀交错喂入物理指标轨迹</strong>——每条序列 ⟨<code>&lt;bos&gt;</code>, x₁, …, xₙ⟩ 携带对应的布线后数据到达时间 ⟨d₀, d₁, …, dₙ⟩ 与最差负裕量 WNS ⟨w₀, w₁, …, wₙ⟩。训练目标是交叉熵拟合天使序列的下一个操作。</p>
+<p>直觉上，这像给模型一本”带绩效附注的操作日志”：模型从第一个梯度步起就把”操作 ↔ 物理后果”的关联刻进表示里，而不是先学语法、再补物理课。论文称这让 SeqFormer 习得”逻辑操作如何与最终物理实现质量相关”的潜层理解。</p>
+<h3 id="Q8：RL-微调为什么用-GRPO-式的组相对优势？这和-LLM-的-RLVR-是什么关系？"><a href="#Q8：RL-微调为什么用-GRPO-式的组相对优势？这和-LLM-的-RLVR-是什么关系？" class="headerlink" title="Q8：RL 微调为什么用 GRPO 式的组相对优势？这和 LLM 的 RLVR 是什么关系？"></a>Q8：RL 微调为什么用 GRPO 式的组相对优势？这和 LLM 的 RLVR 是什么关系？</h3><p>监督预训练只能学到”天使序列长什么样”，还不能保证生成序列对<strong>真实布线代价</strong>最优。于是第二阶段引入论文称之为”物理驱动的强化微调”（消融表中的 RLVR）：</p>
+<p>对给定 AIG 设计，模型自回归采样 <strong>G 条</strong>轨迹；对每条序列 i 跑完整布局布线，测得真实布线后时延 D_i；奖励直接定义为：</p>
+<p>$$r_i &#x3D; -D_i$$</p>
+<p>然后做<strong>组内标准化</strong>得到优势（无 critic、无 value 网络）：</p>
+<p>$$A_i &#x3D; \frac{r_i - \mu_r}{\sigma_r + \epsilon}$$</p>
+<p>优化目标带对冻结参考模型 π_ref 的<strong>精确 KL 罚</strong>（k3 型无偏估计）：</p>
+<p>$$\mathcal{L}(\theta) &#x3D; \frac{1}{G\cdot T}\sum_{i&#x3D;1}^{G}\sum_{t&#x3D;1}^{T}\Big(-\log \pi_\theta(a_{i,t}\mid s_{i,t})\cdot A_i + \beta,\mathbb{D}_{KL}\Big)$$</p>
+<p>三个设计选择的理由：</p>
+<ol>
+<li><strong>奖励可验证且不可伪造</strong>：D_i 来自 OpenSTA 的 signoff 报告，不是代理——这正是 LLM 圈 “RL with Verifiable Rewards” 的配方（个人解读：DeepSeek-R1 式的 GRPO 后训练流水线被完整平移进了 EDA）；</li>
+<li><strong>组相对优势替代 value 网络</strong>：同设计同组内比相对好坏，天然消除设计间基线差异，结构简单、训练稳定；</li>
+<li><strong>KL 罚防止策略崩塌</strong>：把策略锚在物理验证过的天使序列先验附近，避免微调把预训练分布打散。</li>
+</ol>
+<p>论文还强调框架是 <strong>reward-agnostic</strong> 的：r_i 可以换成任意后端指标或其耦合形式，时延只是代表性示例。</p>
+<h3 id="Q9：SeqTree-和标准-MCTS-AlphaSyn-到底差在哪？"><a href="#Q9：SeqTree-和标准-MCTS-AlphaSyn-到底差在哪？" class="headerlink" title="Q9：SeqTree 和标准 MCTS &#x2F; AlphaSyn 到底差在哪？"></a>Q9：SeqTree 和标准 MCTS &#x2F; AlphaSyn 到底差在哪？</h3><p>标准 MCTS 的隐含前提是<strong>节点评估必须廉价</strong>（围棋终局判定瞬间完成）。而在”布线在环”范式下，每个叶节点都跑物理设计是不可承受的。SeqTree 的答案是<strong>把序列探索与物理评估解耦</strong>：</p>
+<ul>
+<li><strong>选择&#x2F;扩展（PUCT）</strong>：动作选择用 AlphaZero 式 PUCT，先验 P(s,a) 来自 GRPO 微调后的 SeqFormer：</li>
+</ul>
+<p>$$UCT(s,a) &#x3D; Q(s,a) + c_{puct}\cdot P(s,a)\cdot\frac{\sqrt{N(s)}}{1+N(s,a)}$$</p>
+<p>论文自己坦言：因为逐步物理评估不可行，树内遍历实质上是”<strong>概率引导的 beam search</strong>“，主要由先验 P 驱动。节点首次访问时向 SeqFormer 查询分布并缓存。</p>
+<ul>
+<li><strong>物理评估只在批级发生</strong>：每轮内层循环 b 条并行搜索各自走到深度 d，产生的 b 条候选<strong>批量异步</strong>送 OpenROAD 布线（Algorithm 1 行 10），奖励 R_k 回传更新 Q。评估次数从 O(节点数) 降到 O(轮数×b)。</li>
+<li><strong>与 AlphaSyn 的本质差异</strong>：AlphaSyn 纯在线、每个新设计重训策略（AlphaZero 式自博弈的代价）；SeqTree 的策略是<strong>一次离线预训练 + 微调</strong>（AlphaGo 式），先验直接进 PUCT，在线只做搜索适配。</li>
+</ul>
+<p>一个细节值得指出（细读者会注意到）：论文 §3.3.2 说树内回传”只增加访问计数 N 而非昂贵的物理奖励”，而 Algorithm 1 行 13 又写了 <code>Backpropagate(R_k)</code>。两者并不矛盾但表述有张力——合理的调和是：<strong>批内</strong>的多样性靠访问计数与虚拟损失维持（计数回传平滑惩罚高频分支），<strong>批后</strong>的物理奖励再更新 Q 供下一轮选择使用。复现时建议以 Algorithm 1 为准。</p>
+<h3 id="Q10：PUCT、虚拟损失、Dirichlet-噪声、单调接受……每个机制都在解决什么问题？"><a href="#Q10：PUCT、虚拟损失、Dirichlet-噪声、单调接受……每个机制都在解决什么问题？" class="headerlink" title="Q10：PUCT、虚拟损失、Dirichlet 噪声、单调接受……每个机制都在解决什么问题？"></a>Q10：PUCT、虚拟损失、Dirichlet 噪声、单调接受……每个机制都在解决什么问题？</h3><p>一张”问题 → 机制”对照表：</p>
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>解决的问题</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PUCT（先验加权探索项 √N(s)&#x2F;(1+N(s,a))）</td>
+<td>在”相信先验”与”留探索余地”之间平衡；先验质量高时探索被有效压缩</td>
+</tr>
+<tr>
+<td>虚拟损失（virtual loss）</td>
+<td>b 条并行搜索互不撞车——一条路径被占时临时降权，其他搜索走别的路</td>
+</tr>
+<tr>
+<td>根节点 Dirichlet 噪声</td>
+<td>防止所有轮次都挤进先验最高的同一分支，过早收敛（AlphaZero 同款技巧）</td>
+</tr>
+<tr>
+<td>计数回传</td>
+<td>廉价地平滑惩罚高频分支，保证 b 条候选高度多样</td>
+</tr>
+<tr>
+<td>批量异步布线评估</td>
+<td>把物理评估摊到批级，规避节点级评估的算力灾难</td>
+</tr>
+<tr>
+<td>单调接受（D_best &lt; D* 才更新）</td>
+<td><strong>硬保证</strong>：最终输出的序列在真实物理指标上绝不会差于起点——黑盒搜索的安全底线</td>
+</tr>
+</tbody></table>
+<p>最后一条常被忽视但极其重要：黑盒搜索方法最怕”探索半天反而交出更差的答案”，单调接受让 EncyLogic 的最坏情况被钉死在基线，这是它敢在工业流里用的底气。</p>
+<hr>
+<h2 id="Part-3-·-实验与结果：数字应该怎么读？"><a href="#Part-3-·-实验与结果：数字应该怎么读？" class="headerlink" title="Part 3 · 实验与结果：数字应该怎么读？"></a>Part 3 · 实验与结果：数字应该怎么读？</h2><h3 id="Q11：实验设置如何保证公平与泛化？"><a href="#Q11：实验设置如何保证公平与泛化？" class="headerlink" title="Q11：实验设置如何保证公平与泛化？"></a>Q11：实验设置如何保证公平与泛化？</h3><p>论文在这几点上做得相当规范：</p>
+<ol>
+<li><strong>完全未见的设计</strong>：所有测试 AIG 与训练集严格分离，以验证学到的”轨迹分布”而非记忆；</li>
+<li><strong>统一物理流水线</strong>：ORFS（OpenROAD-flow-scripts）+ ASAP7 预测型 7nm FinFET 库（7.5-track、RVT、Best-Case corner&#x2F;0.77V&#x2F;25°C、NLDM）；前端固定 Yosys + ABC；后端完整跑 floorplan → 全局&#x2F;详细布局 → CTS → 全局&#x2F;详细布线 → 寄生提取；</li>
+<li><strong>指标取自 signoff 报告</strong>：所有面积与时延直接从 OpenSTA 最终签核报告提取，不做任何估计；</li>
+<li><strong>可比算力下的四类基线</strong>：DAC’25（扩散模型&#x2F;连续建模）、BOiLS（贝叶斯优化&#x2F;黑盒搜索）、AlphaSyn（在线 MCTS）、<code>&amp;deepsyn</code>（Berkeley ABC 的激进启发式，作传统方法”天花板”）；</li>
+<li>硬件与工具：Intel Xeon + NVIDIA A800，PyTorch 出序列，OpenROAD 出真值。</li>
+</ol>
+<p>注意两个读表细节：Table 2 的 ASIC 结果在 <strong>FF corner</strong> 评估（与 Table 1 的 Best-Case corner 不同，各自内部自洽但横向引用要小心）；DAC’25 的数据<strong>取自其原论文</strong>，属跨论文比较，条件可能不完全一致。</p>
+<h3 id="Q12：三个-headline-数字（17-6-24-21-）分别相对谁、怎么算的？"><a href="#Q12：三个-headline-数字（17-6-24-21-）分别相对谁、怎么算的？" class="headerlink" title="Q12：三个 headline 数字（17.6% &#x2F; 24% &#x2F; 21%）分别相对谁、怎么算的？"></a>Q12：三个 headline 数字（17.6% &#x2F; 24% &#x2F; 21%）分别相对谁、怎么算的？</h3><table>
+<thead>
+<tr>
+<th>数字</th>
+<th>指标（几何均值）</th>
+<th>EncyLogic</th>
+<th>基线</th>
+<th>出处</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>17.6%</strong></td>
+<td>布线后 ADP（ps·µm²）</td>
+<td>22,564.13</td>
+<td>BOiLS 27,390.25</td>
+<td>Table 1</td>
+</tr>
+<tr>
+<td><strong>24%</strong></td>
+<td>工艺映射后时延（ps，ASAP7 FF）</td>
+<td>133.69</td>
+<td><code>&amp;deepsyn</code> 176.63（ratio 0.76）</td>
+<td>Table 2</td>
+</tr>
+<tr>
+<td><strong>21%</strong></td>
+<td>FPGA LUT 数</td>
+<td>257.00</td>
+<td><code>&amp;deepsyn</code> 324.96（ratio 0.79）</td>
+<td>Table 2</td>
+</tr>
+</tbody></table>
+<p>补充几个次级数字：布线后时延几何均值 237.28 ps，比 BOiLS 的 258.42 好 8.2%；对 DAC’25 的 152.93 好 12.6%；FPGA 逻辑级数 9.00 → 7.77（-14%）。</p>
+<p>为什么全程用几何均值？因为这个 benchmark 套件的 ADP 跨度从 10³ 到 3.5×10⁶（ctrl 只有 976，square 高达 351 万），算术均值会被大设计完全绑架，几何均值才反映”典型提升”。</p>
+<h3 id="Q13：哪里赢得漂亮？哪里输得难看？"><a href="#Q13：哪里赢得漂亮？哪里输得难看？" class="headerlink" title="Q13：哪里赢得漂亮？哪里输得难看？"></a>Q13：哪里赢得漂亮？哪里输得难看？</h3><p><strong>赢面</strong>（论文重点宣传的案例）：</p>
+<ul>
+<li><strong>router</strong>：布线后时延 265.36 → 120.97 ps，ADP 提升 **73.1%**——拥塞敏感的设计上，”物理感知先验”的价值被放大到极致；</li>
+<li><strong>sin</strong>：面积 614 → 364 µm²，ADP 提升 32.6%——避免了激进序列常见的逻辑膨胀；</li>
+<li><strong>i2c</strong>（27.5%）、<strong>ctrl</strong>（24.8%）、<strong>arbiter</strong>（FPGA 上 LUT 2722 → 165、级数 18 → 6；ASIC 映射时延 347.26 → 85.33 ps）、<strong>int2float</strong>（71.06 → 50.01 ps）。</li>
+</ul>
+<p><strong>败笔</strong>（几何均值赢了，但单点翻车）：</p>
+<ul>
+<li><strong>adder</strong>：ADP 反而恶化 **-128.8%**（时延 686.77 vs BOiLS 的 310.53 ps；虽然仍远好于 <code>&amp;deepsyn</code> 的 4237.40）。值得注意的是消融表中 adder 去掉 MCTS 后时延崩到 4013.96 ps——说明这个设计上 MCTS 的在线适配其实救回了很多，但仍没追上 BOiLS；</li>
+<li><strong>voter</strong>：ADP 恶化 -26.2%——时延其实更好（866.62 vs 997.82 ps），但面积 754 vs 519 µm² 惨败。这是<strong>单目标 reward 的直接代价</strong>：为时延牺牲面积；</li>
+<li><strong>max</strong>：工艺映射时延 996.04 ps，落后于 <code>&amp;deepsyn</code>（815.44）和 DAC’25（612.07），FPGA 级数也更高（51 vs 41）。</li>
+</ul>
+<p>怎么解读？个人解读：单目标（时延）优化的结构性副作用在 voter&#x2F;max&#x2F;adder 上显形；且对结构极简的设计（adder 类），搜索的统计优势摊薄。论文自己在 4.5 节承认单目标会带来面积波动，但主张 ADP 整体仍严格占优。</p>
+<h3 id="Q14：消融实验说明了什么？为什么-RLVR-和-MCTS-都”不可或缺”？"><a href="#Q14：消融实验说明了什么？为什么-RLVR-和-MCTS-都”不可或缺”？" class="headerlink" title="Q14：消融实验说明了什么？为什么 RLVR 和 MCTS 都”不可或缺”？"></a>Q14：消融实验说明了什么？为什么 RLVR 和 MCTS 都”不可或缺”？</h3><p>Table 3（14 个 benchmark，几何均值时延）：</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>布线后时延</th>
+<th>相对退化</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>完整 EncyLogic</td>
+<td>284.46 ps</td>
+<td>—</td>
+</tr>
+<tr>
+<td>去掉 MCTS（静态贪心解码）</td>
+<td>356.11 ps</td>
+<td><strong>+25.2%</strong></td>
+</tr>
+<tr>
+<td>去掉 RLVR（纯监督模仿）</td>
+<td>372.74 ps</td>
+<td><strong>+31.0%</strong></td>
+</tr>
+</tbody></table>
+<p>两条结论各自对应一个”必须”：</p>
+<ul>
+<li><strong>RLVR 必须有</strong>：纯模仿学习只能复刻蒸馏数据的形，学不出对真实布线代价的对齐——去掉它，模型退化为”结构性模仿器”，时延几何均值直接恶化三成。RL 微调是把先验接到物理现实的那根线；</li>
+<li><strong>MCTS 必须有</strong>：通用先验不可能预知每个新设计的独特拓扑约束——静态贪心推理丢掉 25.2%。在线搜索负责把”平均意义上的好分布”裁剪成”这个设计合身的序列”。</li>
+</ul>
+<p>一句话：<strong>RLVR 管分布对不对，MCTS 管这件衣服合不合身</strong>，两者正交、缺一不可。</p>
+<hr>
+<h2 id="Part-4-·-批判性视角：一篇细读之后该追问的事"><a href="#Part-4-·-批判性视角：一篇细读之后该追问的事" class="headerlink" title="Part 4 · 批判性视角：一篇细读之后该追问的事"></a>Part 4 · 批判性视角：一篇细读之后该追问的事</h2><h3 id="Q15：一万条训练数据、六层-Transformer，真的能学出”分布”吗？"><a href="#Q15：一万条训练数据、六层-Transformer，真的能学出”分布”吗？" class="headerlink" title="Q15：一万条训练数据、六层 Transformer，真的能学出”分布”吗？"></a>Q15：一万条训练数据、六层 Transformer，真的能学出”分布”吗？</h3><p>先别急着说小。这个”语言”比自然语言简单好几个数量级：词表 32、序列 25 步、语法结构高度局部——6 层 512 维对这个量级并不寒酸（类比：AlphaGo 的策略网络也就十几个卷积层）。消融结果也证明”小模型 + 强搜索”的组合已经足够打赢所有基线。</p>
+<p>真正的风险不在参数量，在<strong>覆盖面</strong>（个人解读）：训练分布来自 OpenABC-D &#x2F; ISCAS-85 的小规模电路，对真实工业规模设计（上万倍大）的分布偏移才是要害；论文的 benchmark 最大的 sin&#x2F;square 也仍是学术规模。这属于”论文成立”与”工业可用”之间的经典缝隙。</p>
+<h3 id="Q16：训练序列只有-25-步，Fig-1-却说-500-步的天使序列还在涨——矛盾吗？"><a href="#Q16：训练序列只有-25-步，Fig-1-却说-500-步的天使序列还在涨——矛盾吗？" class="headerlink" title="Q16：训练序列只有 25 步，Fig.1 却说 500 步的天使序列还在涨——矛盾吗？"></a>Q16：训练序列只有 25 步，Fig.1 却说 500 步的天使序列还在涨——矛盾吗？</h3><p>不矛盾，但值得追问。三层事实：</p>
+<ol>
+<li>Fig.1 是<strong>动机实验</strong>：随机 500 步长序列证明天使序列存在、且长 horizon 仍有优化空间；</li>
+<li>训练语料是 25 步序列；</li>
+<li>部署时 SeqTree 的外层迭代不断在基序列后<strong>追加</strong>（每轮至多 d 步、共 n 轮），最终序列可以远长于 25 步。</li>
+</ol>
+<p>所以”长 horizon 能力”由在线搜索外推，先验只负责每一步的局部引导。真正开放的问题是：<strong>25 步学到的先验在数百步之后是否仍然可靠？</strong> 论文没有直接检验这一点（个人解读：这是一个隐含假设，也是后续工作最自然的切入点之一）。</p>
+<h3 id="Q17：每次-MCTS-迭代平均-1064-秒——太贵了吧？"><a href="#Q17：每次-MCTS-迭代平均-1064-秒——太贵了吧？" class="headerlink" title="Q17：每次 MCTS 迭代平均 1064 秒——太贵了吧？"></a>Q17：每次 MCTS 迭代平均 1064 秒——太贵了吧？</h3><p>账要这么算：几何均值 1064.41 s&#x2F;迭代（Table 1 Runtime 列，sin 单次约 4300 s），乘以迭代数 n，再加 GRPO 离线微调的布线成本。确实不便宜。论文的辩护分三层：</p>
+<ol>
+<li><strong>NRE 语境</strong>：先进节点上，综合探索的一次性算力成本，远小于流片后才发现时序违例&#x2F;布线拥塞的代价——这笔钱花在前面是”买保险”；</li>
+<li><strong>复杂度被先验钉死</strong>：GRPO 微调后的 SeqFormer 提供准确物理先验，高效剪枝 MCTS 树，避免状态空间爆炸；</li>
+<li><strong>基线也没便宜到哪去</strong>：BOiLS 这类黑盒优化本身就要反复跑物理评估（不过论文表格未列基线运行时，严格的时间公平性需要查全文&#x2F;开源代码——这是个该追问的点）。</li>
+</ol>
+<p>论文自己给出的解药：未来引入轻量、物理感知的代理模型加速评估、同时保住物理保真度。这个方向和 LLM 圈”verifier 蒸馏”的思路遥相呼应（个人解读）。</p>
+<h3 id="Q18：只优化时延，面积和功耗怎么办？"><a href="#Q18：只优化时延，面积和功耗怎么办？" class="headerlink" title="Q18：只优化时延，面积和功耗怎么办？"></a>Q18：只优化时延，面积和功耗怎么办？</h3><p>论文在 4.5 节正面回应：框架<strong>reward-agnostic</strong>，把 r_i 从 −D_i 换成多目标耦合形式（例如 r_i &#x3D; −D_i − λ·Area_i）无需改动任何算法骨架。当前单目标设计是<strong>有意为之</strong>——用时延这个”前后端断连最严重的指标”来验证方法论。</p>
+<p>但 voter 和 adder 的翻车已经演示了单目标的偏科：ADP 指标只能部分兜底，不是真正的帕累托前沿。自然的后续：多目标 reward、面积作硬约束的受控优化、或者奖励整形（reward shaping）下的三目标 PPA 协同。</p>
+<h3 id="Q19：细读表格，我发现了几个值得求证的小问题"><a href="#Q19：细读表格，我发现了几个值得求证的小问题" class="headerlink" title="Q19：细读表格，我发现了几个值得求证的小问题"></a>Q19：细读表格，我发现了几个值得求证的小问题</h3><p>以下是”审稿人视角”的观察，不影响主结论，但复现时应该问：</p>
+<ol>
+<li><strong>cavlc 的数字打架</strong>：Table 1 中 Ency 时延 199.92 ps、面积 51 µm²、ADP 10,195.92（51×199.92 自洽）；Table 3 中 Ency 时延却是 160.49 ps、ADP 61,468——61,468&#x2F;160.49 ≈ 383 µm²，与 51 对不上。同一方法同一基准出现两组互斥数字，疑为笔误或配置差异；</li>
+<li><strong>“unseen”的程度无法核验</strong>：训练语料取自 OpenABC-D&#x2F;ISCAS-85 的 33 个 AIG，而测试基准名（adder、arbiter、sin、voter……）恰好也是 OpenABC-D 的设计名。论文声明训练&#x2F;测试完全分离，但正文未列出 33 个训练 AIG 的清单，读者无法确认”未见”的是设计本身还是其变体；</li>
+<li><strong>AlphaSyn 缺席结果表</strong>：作为动机部分反复对比的在线 MCTS 基线，在 Table 1&#x2F;2 中没有结果列（至少在正文表格范围内未见）；</li>
+<li><strong>关键超参未公开</strong>：d（搜索深度）、b（并行宽度）、M（轮数）、n（外层迭代数）、G（GRPO 组大小）、β（KL 系数）在正文中均以符号出现、未见取值；</li>
+<li><strong>Table 1 与 Table 2 的 corner 不同</strong>（Best-Case vs FF），各自内部一致，但横向引用数字时要留心。</li>
+</ol>
+<p>这类细节正是”论文说的 17.6%”与”你复现出的 17.6%”之间常见的缝隙所在。</p>
+<h3 id="Q20：这篇论文对”生成式-AI-×-EDA”这个大方向意味着什么？"><a href="#Q20：这篇论文对”生成式-AI-×-EDA”这个大方向意味着什么？" class="headerlink" title="Q20：这篇论文对”生成式 AI × EDA”这个大方向意味着什么？"></a>Q20：这篇论文对”生成式 AI × EDA”这个大方向意味着什么？</h3><p>五条启示（个人解读为主）：</p>
+<ol>
+<li><strong>LLM 后训练配方可以整体平移进 EDA</strong>：蒸馏数据 → SFT → 可验证奖励的 GRPO → 测试时搜索。这套”SFT + RLVR + test-time search”的组合拳在逻辑综合上被完整验证。EDA 天然适合 RLVR：<strong>真值可算</strong>（跑工具就是了），只是贵——贵的部分用”批级验证 + 单调接受”控制；</li>
+<li><strong>代理-真值鸿沟是普遍病症</strong>：任何存在”廉价代理 + 昂贵真值”结构的领域（编译器 flag 优化、数据库查询计划、芯片布局布线、AutoML 管道），”学真值分布 + 批量真值验证 + 单调接受”都是可复用的模板；</li>
+<li><strong>小模型 + 强搜索 ≠ 落后</strong>：在 32 词表、25 步序列的窄域语言上，6 层 Transformer 就够，剩下交给测试时计算。这对”EDA 要不要上大模型”的争论提供了一个数据点：也许该上的是<strong>分布 + 搜索</strong>，而不是参数量；</li>
+<li><strong>开源 EDA 生态是被低估的功臣</strong>：ABC&#x2F;Yosys&#x2F;OpenROAD&#x2F;OpenSTA + OpenABC-D 让”物理在环”的训练在学术实验室里变得可负担——没有这套栈，本文的方法论根本无法验证；</li>
+<li><strong>待办清单清晰可见</strong>：物理代理加速（论文自认）、多目标 reward、更大设计规模、更长 horizon 的先验外推、 encyclopedia 的持续扩充。</li>
+</ol>
+<hr>
+<h2 id="附-A-·-关键数字速查表"><a href="#附-A-·-关键数字速查表" class="headerlink" title="附 A · 关键数字速查表"></a>附 A · 关键数字速查表</h2><table>
+<thead>
+<tr>
+<th>指标</th>
+<th>EncyLogic</th>
+<th>对比</th>
+<th>提升</th>
+<th>出处</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>布线后 ADP（geo）</td>
+<td>22,564.13 ps·µm²</td>
+<td>BOiLS 27,390.25</td>
+<td><strong>17.6%</strong></td>
+<td>Table 1</td>
+</tr>
+<tr>
+<td>布线后时延（geo）</td>
+<td>237.28 ps</td>
+<td>BOiLS 258.42 &#x2F; <code>&amp;deepsyn</code> 320.75</td>
+<td>8.2% &#x2F; 26%</td>
+<td>Table 1</td>
+</tr>
+<tr>
+<td>工艺映射时延（geo，FF）</td>
+<td>133.69 ps</td>
+<td><code>&amp;deepsyn</code> 176.63 &#x2F; DAC’25 152.93</td>
+<td><strong>24%</strong> &#x2F; 12.6%</td>
+<td>Table 2</td>
+</tr>
+<tr>
+<td>FPGA LUT（geo）</td>
+<td>257.00</td>
+<td><code>&amp;deepsyn</code> 324.96</td>
+<td><strong>21%</strong></td>
+<td>Table 2</td>
+</tr>
+<tr>
+<td>FPGA Level（geo）</td>
+<td>7.77</td>
+<td><code>&amp;deepsyn</code> 9.00</td>
+<td>14%</td>
+<td>Table 2</td>
+</tr>
+<tr>
+<td>布线后面积（geo）</td>
+<td>95.08 µm²</td>
+<td>BOiLS 105.99</td>
+<td>10.3%</td>
+<td>Table 1</td>
+</tr>
+<tr>
+<td>单次 MCTS 迭代（geo）</td>
+<td>1,064.41 s</td>
+<td>—</td>
+<td>—</td>
+<td>Table 1</td>
+</tr>
+<tr>
+<td>消融：去 RLVR</td>
+<td>372.74 ps（geo 时延）</td>
+<td>完整 284.46</td>
+<td>+31.0%</td>
+<td>Table 3</td>
+</tr>
+<tr>
+<td>消融：去 MCTS</td>
+<td>356.11 ps（geo 时延）</td>
+<td>完整 284.46</td>
+<td>+25.2%</td>
+<td>Table 3</td>
+</tr>
+<tr>
+<td>天使序列 vs AlphaSyn</td>
+<td>AND 节点约 -10%</td>
+<td>—</td>
+<td>—</td>
+<td>Fig. 1</td>
+</tr>
+</tbody></table>
+<h2 id="附-B-·-术语表"><a href="#附-B-·-术语表" class="headerlink" title="附 B · 术语表"></a>附 B · 术语表</h2><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>AIG</td>
+<td>And-Inverter Graph，2 输入 AND 节点 + 可带反相边的布尔网络表示</td>
+</tr>
+<tr>
+<td>ABC &#x2F; Berkeley ABC</td>
+<td>开源逻辑综合工具，提供 rewrite&#x2F;refactor&#x2F;resub&#x2F;balance 等操作原语</td>
+</tr>
+<tr>
+<td>PPA</td>
+<td>Power, Performance, Area——传统综合三目标</td>
+</tr>
+<tr>
+<td>QoR</td>
+<td>Quality of Results，综合质量指标</td>
+</tr>
+<tr>
+<td>ADP</td>
+<td>Area-Delay Product（面积×时延积），本文的综合评价指标</td>
+</tr>
+<tr>
+<td>WNS</td>
+<td>Worst Negative Slack，最差负时序裕量</td>
+</tr>
+<tr>
+<td>ORFS</td>
+<td>OpenROAD-flow-scripts，开源 RTL-to-GDSII 流程</td>
+</tr>
+<tr>
+<td>ASAP7</td>
+<td>预测型 7nm FinFET 标准单元库（学术常用）</td>
+</tr>
+<tr>
+<td>OpenSTA</td>
+<td>开源静态时序分析，本文 signoff 指标来源</td>
+</tr>
+<tr>
+<td>angel sequence</td>
+<td>中间指标恶化、终值反超的优化轨迹（词源：Yu et al., ICCAD’18 的 angel&#x2F;devil flow）</td>
+</tr>
+<tr>
+<td>SeqFormer</td>
+<td>本文的 decoder-only Transformer（6 层 &#x2F; 8 头 &#x2F; 512 维），学天使序列分布</td>
+</tr>
+<tr>
+<td>RLVR &#x2F; GRPO</td>
+<td>强化微调（RL with Verifiable Rewards）；组相对策略优化——组内标准化优势、无 value 网络</td>
+</tr>
+<tr>
+<td>SeqTree</td>
+<td>本文的领域定制 MCTS：PUCT 先验 + 批量异步布线评估 + 单调接受</td>
+</tr>
+<tr>
+<td>PUCT</td>
+<td>Predictor-UCT，先验概率加权的树搜索选择公式</td>
+</tr>
+<tr>
+<td>BOiLS &#x2F; AlphaSyn &#x2F; <code>&amp;deepsyn</code> &#x2F; DAC’25</td>
+<td>基线：贝叶斯优化 &#x2F; 在线 MCTS &#x2F; ABC 激进启发式 &#x2F; 扩散模型连续优化</td>
+</tr>
+</tbody></table>
+<h2 id="附-C-·-延伸阅读（论文引用的关键工作）"><a href="#附-C-·-延伸阅读（论文引用的关键工作）" class="headerlink" title="附 C · 延伸阅读（论文引用的关键工作）"></a>附 C · 延伸阅读（论文引用的关键工作）</h2><ul>
+<li>AlphaSyn: Logic Synthesis Optimization with Efficient Monte Carlo Tree Search（ICCAD’23）——在线 MCTS 基线</li>
+<li>BOiLS: Bayesian Optimisation for Logic Synthesis（DATE’22）——黑盒优化基线</li>
+<li>Efficient Continuous Logic Optimization with Diffusion Model（DAC’25）——连续建模基线</li>
+<li>Mastering the game of Go with deep neural networks and treeearch（Nature 2016）与其 AlphaZero 后续（Science 2018）——预训练策略 + MCTS 的原型</li>
+<li>Developing synthesis flows without human knowledge（ICCAD’18）——angel&#x2F;devil flow 概念来源</li>
+<li>OpenROAD &#x2F; OpenABC-D &#x2F; ABC——开源工具链与数据集</li>
+<li>2024 ICCAD CAD Contest Problem A（Cadence）：Reinforcement Logic Optimization for a General Cost Function——黑盒代价函数的工业信号</li>
+</ul>
+<hr>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E6%8A%80%E6%9C%AF%E7%AC%94%E8%AE%B0/" class="category-chain-item">技术笔记</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/EDA/" class="print-no-link">#EDA</a>
+      
+        <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" class="print-no-link">#机器学习</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>interpretation of Encylogic</div>
+      <div>https://chenyu-li-l.github.io/2026/09/15/interpretation-of-Encylogic/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>Author</div>
+          <div>John Doe</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>Posted on</div>
+          <div>September 15, 2026</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>Licensed under</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - Attribution">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>Table of Contents</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+  
+  
+
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">Search</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">Keyword</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    function isExpandAllEnabled() {
+      return CONFIG.toc && CONFIG.toc.expand_all === true;
+    }
+    function expandAllToc() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .tocbot-is-collapsed').removeClass('tocbot-is-collapsed');
+    }
+    function updateTocToggle($li, $childList) {
+      var $toggle = $li.children('.toc-toggle');
+      if ($toggle.length === 0) { return; }
+      var collapsed = $childList.hasClass('tocbot-is-collapsed');
+      $toggle
+        .toggleClass('toc-toggle-collapsed', collapsed)
+        .toggleClass('toc-toggle-expanded', !collapsed);
+    }
+    function bindTocToggle() {
+      if (!isExpandAllEnabled()) { return; }
+      jQuery('#toc-body .toc-list-item').each(function() {
+        var $li = jQuery(this);
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) {
+          if ($li.children('.toc-toggle').length === 0) {
+            $li.prepend('<span class="toc-toggle toc-toggle-placeholder" aria-hidden="true">›</span>');
+          }
+          return;
+        }
+
+        if ($li.children('.toc-toggle').length === 0) {
+          $li.prepend('<span class="toc-toggle toc-toggle-expanded" aria-hidden="true">›</span>');
+        }
+        updateTocToggle($li, $childList);
+      });
+      jQuery('#toc-body').off('click.tocToggle').on('click.tocToggle', '.toc-toggle', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var $li = jQuery(this).parent('.toc-list-item');
+        var $childList = $li.children('ol');
+        if ($childList.length === 0) { return; }
+        $childList.toggleClass('tocbot-is-collapsed');
+        updateTocToggle($li, $childList);
+      });
+      if (!window.__tocToggleObserver) {
+        window.__tocToggleObserver = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') { return; }
+            var $list = jQuery(mutation.target);
+            var $li = $list.parent('.toc-list-item');
+            if ($li.length === 0) { return; }
+            updateTocToggle($li, $list);
+          });
+        });
+        jQuery('#toc-body ol').each(function() {
+          window.__tocToggleObserver.observe(this, { attributes: true });
+        });
+      }
+    }
+    var tocConfig = Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc);
+    if (isExpandAllEnabled()) {
+      tocConfig.collapseDepth = 6;
+    }
+    window.tocbot.init(tocConfig);
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+    expandAllToc();
+    bindTocToggle();
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+        expandAllToc();
+        bindTocToggle();
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/5.0.0/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">Blog works best with JavaScript enabled</div>
+  </noscript>
+</body>
+</html>
